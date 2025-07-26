@@ -1,81 +1,99 @@
 const products = [
-  {
-    id: 1,
-    name: "Luminous RC18000",
-    price: 12500,
-    image: "images/battery1.png"
-  },
-  {
-    id: 2,
-    name: "Exide IB1500",
-    price: 11300,
-    image: "images/battery2.png"
-  },
-  {
-    id: 3,
-    name: "Amaron Tall Tubular",
-    price: 13800,
-    image: "images/battery3.png"
-  },
-  {
-    id: 4,
-    name: "SF Sonic PowerBox",
-    price: 11900,
-    image: "images/battery4.png"
-  }
+  { id: 1, name: "Luminous RC18000", price: 13000, brand: "Luminous", image: "images/battery1.png" },
+  { id: 2, name: "Exide IB1500", price: 12000, brand: "Exide", image: "images/battery2.png" },
+  { id: 3, name: "Amaron Tall Tubular", price: 12500, brand: "Amaron", image: "images/battery3.png" },
+  { id: 4, name: "SF Sonic PowerBox", price: 12800, brand: "SF Sonic", image: "images/battery4.png" },
+  { id: 5, name: "Microtek EB1900", price: 11800, brand: "Microtek", image: "images/microtek.png" },
+  { id: 6, name: "Okaya Tall Tubular", price: 11000, brand: "Okaya", image: "images/okaya.png" },
+  { id: 7, name: "Livguard IT1536TT", price: 12999, brand: "Livguard", image: "images/livguard.png" },
+  { id: 8, name: "V-Guard VT160", price: 12100, brand: "V-Guard", image: "images/vguard.png" }
 ];
 
+let cart = JSON.parse(localStorage.getItem('cart')) || {};
 
-let cart = JSON.parse(localStorage.getItem("cart")) || {};
+function saveCart() {
+  localStorage.setItem('cart', JSON.stringify(cart));
+}
 
-function loadProducts() {
-  const container = document.getElementById("product-list");
-  container.innerHTML = "";
-  products.forEach(product => {
-    const card = document.createElement("div");
-    card.className = "product";
-    const quantity = cart[product.id]?.quantity || 0;
-    card.innerHTML = `
+function renderProducts(filter = '') {
+  const productList = document.getElementById("product-list");
+  productList.innerHTML = '';
+
+  const filtered = products.filter(p =>
+    p.name.toLowerCase().includes(filter) ||
+    p.brand.toLowerCase().includes(filter) ||
+    p.price.toString().includes(filter)
+  );
+
+  filtered.forEach(product => {
+    const qty = cart[product.id] || 0;
+    const item = document.createElement("div");
+    item.className = "product";
+    item.innerHTML = `
       <img src="${product.image}" alt="${product.name}">
       <h3>${product.name}</h3>
+      <p>Brand: ${product.brand}</p>
       <p>Price: ₹${product.price}</p>
-      <div>
-        <button onclick="updateQuantity(${product.id}, -1)">-</button>
-        <span id="qty-${product.id}">${quantity}</span>
-        <button onclick="updateQuantity(${product.id}, 1)">+</button>
+      <div class="quantity-control">
+        <button onclick="removeFromCart(${product.id})">−</button>
+        <span>${qty}</span>
+        <button onclick="addToCart(${product.id})">+</button>
       </div>
     `;
-    container.appendChild(card);
+    productList.appendChild(item);
   });
-  updateCartDisplay();
 }
 
-function updateQuantity(productId, change) {
-  if (!cart[productId]) {
-    cart[productId] = { ...products.find(p => p.id === productId), quantity: 0 };
-  }
+function renderCart() {
+  const cartItems = document.getElementById("cart-items");
+  const totalSpan = document.getElementById("total");
+  cartItems.innerHTML = '';
+  let total = 0;
 
-  cart[productId].quantity += change;
+  Object.keys(cart).forEach(id => {
+    const product = products.find(p => p.id == id);
+    const qty = cart[id];
+    const itemTotal = qty * product.price;
+    total += itemTotal;
 
-  if (cart[productId].quantity <= 0) {
-    delete cart[productId];
-  }
+    const div = document.createElement("div");
+    div.innerHTML = `
+      ${product.name} (x${qty}) - ₹${itemTotal}
+      <button onclick="removeFromCart(${id})">Remove One</button>
+    `;
+    cartItems.appendChild(div);
+  });
 
-  localStorage.setItem("cart", JSON.stringify(cart));
-  loadProducts();
+  totalSpan.textContent = total;
 }
 
-function updateCartDisplay() {
-  let totalItems = 0;
-  let totalAmount = 0;
-
-  for (let id in cart) {
-    totalItems += cart[id].quantity;
-    totalAmount += cart[id].price * cart[id].quantity;
-  }
-
-  document.getElementById("cart-count").textContent = totalItems;
-  document.getElementById("cart-total").textContent = totalAmount;
+function addToCart(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  saveCart();
+  renderProducts(document.getElementById("search").value.toLowerCase());
+  renderCart();
 }
 
-window.onload = loadProducts;
+function removeFromCart(id) {
+  if (cart[id]) {
+    cart[id]--;
+    if (cart[id] === 0) delete cart[id];
+    saveCart();
+    renderProducts(document.getElementById("search").value.toLowerCase());
+    renderCart();
+  }
+}
+
+function clearCart() {
+  cart = {};
+  saveCart();
+  renderProducts(document.getElementById("search").value.toLowerCase());
+  renderCart();
+}
+
+document.getElementById("search").addEventListener("input", e => {
+  renderProducts(e.target.value.toLowerCase());
+});
+
+renderProducts();
+renderCart();
